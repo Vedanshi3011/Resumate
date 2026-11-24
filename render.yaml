@@ -1,0 +1,21 @@
+# Render blueprint — one-click deploy of the API.
+# In Render: New → Blueprint → connect this repository.
+
+services:
+  - type: web
+    name: resumate-api
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CLIENT_URL
+        sync: false

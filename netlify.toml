@@ -1,0 +1,15 @@
+# Netlify — deploy from the repository root.
+# Build the Vite client, publish client/dist, and fall back to index.html for SPA routes.
+
+[build]
+  base = "client"
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

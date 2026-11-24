@@ -1,0 +1,79 @@
+/* =========================================================
+   Print — isolate the resume sheet and lay it out on A4
+   ========================================================= */
+
+@page {
+  size: A4;
+  margin: 0;
+}
+
+@media print {
+  html,
+  body {
+    width: 210mm;
+    height: auto;
+    margin: 0;
+    padding: 0;
+    background: #fff !important;
+  }
+
+  /* Hide everything by default, then reveal only the print area. */
+  body * {
+    visibility: hidden;
+  }
+
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+
+  /* When the print area exists, pin it to the top-left of the page. */
+  .print-area {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 210mm;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+  }
+
+  .print-area .rs {
+    width: 210mm;
+    height: 297mm;
+    aspect-ratio: auto;
+    box-shadow: none;
+    border-radius: 0;
+    overflow: hidden;
+  }
+
+  /* Never split a section across a page boundary. */
+  .rs-section,
+  .rs-item {
+    break-inside: avoid;
+  }
+
+  /* Keep exact colors for accent rules and headers. */
+  .rs,
+  .rs * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Fallback: if a page has no .print-area (e.g. printing the ATS
+     report or a legal page), print the page normally. */
+  body:not(:has(.print-area)) * {
+    visibility: visible;
+  }
+
+  /* Chrome and footer never belong on paper. */
+  .site-nav,
+  .site-footer,
+  .mobile-menu,
+  .toast-stack,
+  .builder-top,
+  .builder__mobile-tabs,
+  .preview__bar,
+  .preview__hint {
+    display: none !important;
+  }
+}

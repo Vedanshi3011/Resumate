@@ -75,22 +75,33 @@ Or run both with `npm run dev` and use the VS Code **Terminal → Split Terminal
 
 ---
 
-## Push to GitHub
+## Get the code on another machine
 
-The repository is already initialized as a git repo with an initial commit. Create an empty repository on GitHub (no README, no `.gitignore`), then run:
-
-```bash
-git remote add origin https://github.com/YOUR_USERNAME/resumate.git
-git branch -M main
-git push -u origin main
-```
-
-If you have the GitHub CLI (`gh`) installed instead:
+The project is published at <https://github.com/Vedanshi3011/Resumate>.
 
 ```bash
-gh auth login
-gh repo create resumate --public --source=. --remote=origin --push
+git clone https://github.com/Vedanshi3011/Resumate.git
+cd Resumate
+npm run install:all
 ```
+
+Then follow [Quick start](#quick-start) from step 2. `server/.env` is gitignored, so every fresh clone needs its own copy — that is the step people forget, and the API will exit immediately without it.
+
+To run the app against the deployed database instead of a local one, copy the `MONGODB_URI` from the Render dashboard into `server/.env`.
+
+### Deploying updates
+
+Both hosts watch `main`, so shipping a change is just a push:
+
+```bash
+git add -A
+git commit -m "Describe the change"
+git push
+```
+
+Vercel rebuilds the client and Render rebuilds the API automatically — usually live within a minute or two. No manual deploy step.
+
+If you would rather work on a branch first, push it and open a pull request: Vercel creates a preview deployment for every PR, which is a safe way to check a change before it reaches `main`.
 
 ### What is and is not committed
 
@@ -119,6 +130,29 @@ If you ever commit a secret by mistake, rotate it immediately — removing it fr
 ```env
 MONGODB_URI=mongodb+srv://USER:PASSWORD@cluster0.xxxxx.mongodb.net/resumate?retryWrites=true&w=majority
 ```
+
+#### If `mongodb+srv://` fails with `querySrv ECONNREFUSED`
+
+Some networks and routers refuse SRV lookups from Node even though the rest of the system resolves them fine. Windows will resolve the record (`Resolve-DnsName _mongodb._tcp.<cluster>.mongodb.net -Type SRV`) while the app still fails.
+
+Three fixes, in order of effort:
+
+1. **Use a local MongoDB for development.** It is faster and works offline; keep Atlas for production.
+2. **Switch DNS** to `8.8.8.8` / `1.1.1.1` for the active adapter and reconnect.
+3. **Use the standard (non-SRV) string.** In Atlas: **Connect → Drivers**, then toggle *Connection string only* to the `mongodb://` form and list every shard host:
+
+```env
+MONGODB_URI=mongodb://USER:PASSWORD@ac-xxxxx-shard-00-00.abcde.mongodb.net:27017,ac-xxxxx-shard-00-01.abcde.mongodb.net:27017,ac-xxxxx-shard-00-02.abcde.mongodb.net:27017/resumate?replicaSet=atlas-xxxxx-shard-0&authSource=admin&retryWrites=true&w=majority&ssl=true
+```
+
+Get the shard hosts and replica set name from:
+
+```powershell
+Resolve-DnsName _mongodb._tcp.<cluster>.mongodb.net -Type SRV
+Resolve-DnsName <cluster>.mongodb.net -Type TXT
+```
+
+Deployed hosts (Render, Railway, Fly) do not have this problem — use the `mongodb+srv://` form there.
 
 ---
 
@@ -369,6 +403,23 @@ The Express entry point checks for `client/dist/index.html`, serves the static f
 | Render (API) | `CLIENT_URL` | deployed frontend origin(s) |
 | Render (API) | `NODE_ENV` | `production` |
 | Vercel/Netlify | `VITE_API_URL` | `https://YOUR-API.onrender.com/api` |
+
+---
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| `Cannot reach the server. Is the API running on port 5000?` | API not started, or crashed on boot | Run `npm run server` and read its output |
+| API exits with `MONGODB_URI is not defined` | No `server/.env` | `Copy-Item server/.env.example server/.env` and fill it in |
+| `ECONNREFUSED 127.0.0.1:27017` | MongoDB is not running | Start the MongoDB service, or switch to Atlas |
+| `querySrv ECONNREFUSED` | Network blocks SRV lookups | See [the Atlas section](#if-mongodbsrv-fails-with-querysrv-econnrefused) |
+| `bad auth : authentication failed` | Wrong username or password in the URI | Reset the user's password in Atlas and update `MONGODB_URI` |
+| Port 5000 already in use | Another process holds it | `netstat -ano | findstr :5000` then stop that PID, or set `PORT=5001` and `VITE_API_URL=http://localhost:5001/api` |
+| Blank page, console shows a CORS error | `CLIENT_URL` does not match the browser origin | Add the exact origin, scheme included, no trailing slash |
+| Deployed site calls `/api` on its own domain | `VITE_API_URL` was missing at build time | Add it in Vercel and **Redeploy** — env changes do not apply to existing builds |
+| Login works but resumes do not load | The seeded data lives in a different database | Check the database name before the `?` in `MONGODB_URI` |
+| First request after idle takes ~50 s | Render free tier spins down | Expected; upgrade the instance to keep it warm |
 
 ---
 
